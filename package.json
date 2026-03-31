@@ -1,0 +1,22 @@
+{
+  "name": "xioma-agent",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@stellar/stellar-sdk": "^15.0.0",
+    "@x402/core": "^2.8.0",
+    "@x402/express": "^2.8.0",
+    "@x402/fetch": "^2.8.0",
+    "@x402/stellar": "^2.8.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}
