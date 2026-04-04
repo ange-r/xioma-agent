@@ -29,6 +29,13 @@ const USDC_CONTRACT_ID = process.env.USDC_CONTRACT_ID;
 const SERVER_URL = "http://localhost:3001";
 const ENDPOINT = "/analyze-cashflow";
 const SERVICE_PRICE_USDC = 0.01;
+const DESTINATION_WALLETS = {
+  salaries: process.env.WALLET_SALARIES,
+  suppliers: process.env.WALLET_SUPPLIERS,
+  taxes: process.env.WALLET_TAXES,
+  services: process.env.WALLET_SERVICES,
+  operating_cash: process.env.WALLET_OPERATING_CASH,
+};
 
 // Check USDC balance before attempting any payment.
 // Prevents sending a transaction that will fail due to insufficient funds.
@@ -164,6 +171,7 @@ async function main() {
           services: 0.12,
           operating_cash: 0.15
         },
+        destinationWallets: DESTINATION_WALLETS,
       }),
     });
   } catch (err) {
