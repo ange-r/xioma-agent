@@ -3,6 +3,7 @@ import { paymentMiddlewareFromConfig } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import dotenv from "dotenv";
+import { calculateDistribution } from "./agent.js";
 
 dotenv.config();
 
@@ -47,14 +48,19 @@ app.use(
 );
 
 // This handler only executes after payment has been verified and settled on-chain.
-// In later steps this is where the fund distribution logic and earmarking will run.
+// Delegates distribution logic to the agent module — server only handles transport and payment.
 app.post("/analyze-cashflow", (req, res) => {
-  console.log(`[Xioma] Payment verified - processing request`);
-  res.json({
-    status: "payment verified",
-    message: "Xioma agent ready",
-    received: req.body,
-  });
+  console.log(`[Xioma] Payment verified - processing cashflow request`);
+
+  const { amount, currency, obligations } = req.body;
+
+  try {
+    const result = calculateDistribution(amount, currency, obligations);
+    res.json({ status: "success", result });
+  } catch (err) {
+    console.error(`[Xioma] Distribution error: ${err.message}`);
+    res.status(400).json({ status: "error", message: err.message });
+  }
 });
 
 app.listen(PORT, () => {
