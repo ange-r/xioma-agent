@@ -4,6 +4,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import dotenv from "dotenv";
 import { calculateDistribution } from "./agent.js";
+import { executeEarmarking } from "./wallets.js";
 
 dotenv.config();
 
@@ -11,6 +12,9 @@ const PORT = 3001;
 const NETWORK = process.env.NETWORK;
 const FACILITATOR_URL = "https://channels.openzeppelin.com/x402/testnet";
 const PAY_TO = process.env.AGENT_PUBLIC_KEY;
+const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY;
+const CLIENT_PUBLIC_KEY = process.env.CLIENT_PUBLIC_KEY;
+const STELLAR_RPC_URL = process.env.STELLAR_RPC_URL;
 
 const app = express();
 app.use(express.json());
@@ -49,16 +53,31 @@ app.use(
 
 // This handler only executes after payment has been verified and settled on-chain.
 // Delegates distribution logic to the agent module — server only handles transport and payment.
-app.post("/analyze-cashflow", (req, res) => {
+app.post("/analyze-cashflow", async (req, res) => {
   console.log(`[Xioma] Payment verified - processing cashflow request`);
 
-  const { amount, currency, obligations } = req.body;
+  const { amount, currency, obligations, destinationWallets } = req.body;
 
   try {
+    // Calculate distribution plan
     const result = calculateDistribution(amount, currency, obligations);
-    res.json({ status: "success", result });
+
+    // Execute earmarking on-chain from client account via multisig
+    const earmarking = await executeEarmarking(
+      result.plan,
+      destinationWallets,
+      AGENT_PRIVATE_KEY,
+      CLIENT_PUBLIC_KEY,
+      STELLAR_RPC_URL
+    );
+
+    res.json({
+      status: "success",
+      result,
+      earmarking,
+    });
   } catch (err) {
-    console.error(`[Xioma] Distribution error: ${err.message}`);
+    console.error(`[Xioma] Error: ${err.message}`);
     res.status(400).json({ status: "error", message: err.message });
   }
 });
