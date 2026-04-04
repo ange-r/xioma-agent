@@ -158,10 +158,11 @@ async function main() {
         amount: 1000,
         currency: "USDC",
         obligations: {
-          salaries: 0.35, 
-          suppliers: 0.30,
-          taxes: 0.20,
-          services: 0.15,
+          salaries: 0.30,
+          suppliers: 0.25,
+          taxes: 0.18,
+          services: 0.12,
+          operating_cash: 0.15
         },
       }),
     });
