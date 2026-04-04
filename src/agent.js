@@ -1,7 +1,7 @@
 // Pure distribution logic — no network calls, no side effects.
 // Receives a cashflow input and returns a distribution plan.
 
-const VALID_CATEGORIES = ["salaries", "suppliers", "taxes", "services"];
+const VALID_CATEGORIES = ["salaries", "suppliers", "taxes", "services", "operating_cash"];
 const SUPPORTED_CURRENCIES = ["USDC"];
 const MAX_AMOUNT = 1_000_000;
 const STELLAR_DECIMALS = 7;
