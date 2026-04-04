@@ -162,7 +162,7 @@ async function main() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: 1000,
+        amount: 50, //Example cashflow amount — in a real scenario, this would come from the client's data
         currency: "USDC",
         obligations: {
           salaries: 0.30,
