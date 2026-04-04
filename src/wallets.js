@@ -7,7 +7,7 @@ const {
   Operation,
   Memo,
 } = pkg;
-import { rpc as StellarRpc } from "@stellar/stellar-sdk";
+import { rpc as StellarRpc, Horizon } from "@stellar/stellar-sdk";
 
 const USDC_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
 const USDC = new Asset("USDC", USDC_ISSUER);
@@ -17,9 +17,9 @@ const BASE_FEE = "100";
 // Verifies that a destination account exists on the network.
 // Called for all destinations before building the transaction —
 // if any account is invalid, the entire earmarking is aborted.
-async function verifyDestination(server, address, category) {
+async function verifyDestination(horizon, address, category) {
   try {
-    await server.getAccount(address);
+    await horizon.loadAccount(address);
     console.log(`[Xioma Wallets] ${category}: ${address} ✓`);
   } catch (err) {
     throw new Error(
@@ -53,11 +53,11 @@ export async function executeEarmarking(
     throw new Error("Missing destination wallets");
   }
 
-  let server;
+  let horizon;
   let agentKeypair;
 
   try {
-    server = new StellarRpc.Server(rpcUrl);
+    horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
     agentKeypair = Keypair.fromSecret(agentPrivateKey);
     console.log(`[Xioma Wallets] Agent signer: ${agentKeypair.publicKey()}`);
     console.log(`[Xioma Wallets] Client source account: ${clientPublicKey}`);
@@ -69,7 +69,7 @@ export async function executeEarmarking(
   // If any account is invalid, abort before touching any funds.
   console.log("[Xioma Wallets] Verifying destination accounts...");
   for (const [category, wallet] of Object.entries(destinationWallets)) {
-    await verifyDestination(server, wallet, category);
+    await verifyDestination(horizon, wallet, category);
   }
 
   // Filter categories that have a destination wallet and a non-zero amount
@@ -100,7 +100,7 @@ export async function executeEarmarking(
   let transaction;
   try {
     // Load the CLIENT account — this is the source of funds
-    const clientAccount = await server.getAccount(clientPublicKey);
+    const clientAccount = await horizon.loadAccount(clientPublicKey);
 
     const builder = new TransactionBuilder(clientAccount, {
       fee: BASE_FEE,
@@ -133,7 +133,7 @@ export async function executeEarmarking(
   let result;
   try {
     console.log("[Xioma Wallets] Submitting transaction...");
-    result = await server.submitTransaction(transaction);
+    result = await horizon.submitTransaction(transaction);
     console.log(
       `[Xioma Wallets] Transaction confirmed — txHash: ${result.hash}`
     );
