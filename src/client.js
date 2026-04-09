@@ -36,6 +36,7 @@ const DESTINATION_WALLETS = {
   services: process.env.WALLET_SERVICES,
   operating_cash: process.env.WALLET_OPERATING_CASH,
 };
+const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY;
 
 // Check USDC balance before attempting any payment.
 // Prevents sending a transaction that will fail due to insufficient funds.
@@ -72,6 +73,84 @@ async function checkUsdcBalance(rpcUrl, walletAddress, contractId) {
   }
 }
 
+// Fetches the current XLM-USD price from xlm402.com oracle via x402 payment.
+// The agent pays for this data using its own wallet — demonstrating the dual role:
+// Xioma is both an x402 server (charges clients) and an x402 client (pays for data).
+
+async function fetchXlmPrice(agentPrivateKey, network, rpcUrl) {
+  const ORACLE_URL = "https://xlm402.com/testnet/markets/crypto/quote?symbol=XLM-USD&source=best";
+
+  console.log("[Xioma Client] Fetching XLM-USD price from oracle via x402...");
+
+  try {
+    const signer = createEd25519Signer(agentPrivateKey, network);
+    const rpcConfig = { url: rpcUrl };
+
+    const client = new x402Client().register(
+      "stellar:*",
+      new ExactStellarScheme(signer, rpcConfig),
+    );
+    const httpClient = new x402HTTPClient(client);
+
+    // First request — expects 402
+    const firstTry = await fetch(ORACLE_URL, { method: "GET" });
+    console.log(`[Xioma Client] Oracle responded with status: ${firstTry.status}`);
+
+    if (firstTry.status !== 402) {
+      const data = await firstTry.json();
+      console.log("[Xioma Client] Oracle returned data without payment:", data);
+      return data;
+    }
+
+    // Read payment instructions from 402 header
+    const paymentRequired = httpClient.getPaymentRequiredResponse(
+      (name) => firstTry.headers.get(name),
+    );
+
+    // Build and sign payment payload
+    let paymentPayload = await client.createPaymentPayload(paymentRequired);
+
+    // Testnet workaround: set fee to 1 stroop
+    const networkPassphrase = getNetworkPassphrase(network);
+    const tx = new Transaction(
+      paymentPayload.payload.transaction,
+      networkPassphrase,
+    );
+    const sorobanData = tx.toEnvelope().v1()?.tx()?.ext()?.sorobanData();
+    if (sorobanData) {
+      paymentPayload = {
+        ...paymentPayload,
+        payload: {
+          ...paymentPayload.payload,
+          transaction: TransactionBuilder.cloneFrom(tx, {
+            fee: "1",
+            sorobanData,
+            networkPassphrase,
+          })
+            .build()
+            .toXDR(),
+        },
+      };
+    }
+
+    // Retry with payment
+    const paymentHeaders = httpClient.encodePaymentSignatureHeader(paymentPayload);
+    const paidResponse = await fetch(ORACLE_URL, {
+      method: "GET",
+      headers: paymentHeaders,
+    });
+
+    const data = await paidResponse.json();
+    console.log("[Xioma Oracle] Raw response:", JSON.stringify(data, null, 2));
+    console.log(`[Xioma Client] XLM-USD price: ${data?.data?.price ?? "unavailable"}`);
+    return data;
+
+  } catch (err) {
+    console.warn(`[Xioma Client] Could not fetch XLM price: ${err.message}`);
+    return null;
+  }
+}
+
 async function main() {
   console.log("[Xioma Client] Starting...");
 
@@ -97,6 +176,16 @@ async function main() {
   );
   const httpClient = new x402HTTPClient(client);
   const url = new URL(ENDPOINT, SERVER_URL).toString();
+
+  // Fetch XLM price from oracle before calling Xioma — agent pays via x402
+  const xlmPrice = await fetchXlmPrice(
+    process.env.AGENT_PRIVATE_KEY,
+    NETWORK,
+    STELLAR_RPC_URL
+  );
+  if (xlmPrice) {
+    console.log(`[Xioma Client] Oracle data: XLM = $${xlmPrice?.data?.price} USD (source: ${xlmPrice?.data?.source})`);
+  }
 
   // First request without payment — expected to receive 402
   console.log("[Xioma Client] Sending unpaid request...");
@@ -162,10 +251,11 @@ async function main() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: 50, //Example cashflow amount — in a real scenario, this would come from the client's data
+        amount: 5, //Example cashflow amount — in a real scenario, this would come from the client's data
         currency: "USDC",
         obligations: {
           salaries: 0.30,
+          
           suppliers: 0.25,
           taxes: 0.18,
           services: 0.12,
@@ -186,7 +276,7 @@ async function main() {
   console.log("[Xioma Client] Settlement confirmed:", paymentResponse);
 
   const data = await paidResponse.json();
-  console.log("[Xioma Client] Agent response:", data);
+  console.log("[Xioma Client] Agent response:", JSON.stringify(data, null, 2));
 }
 
 main().catch((err) => {
