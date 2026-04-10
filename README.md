@@ -140,8 +140,6 @@ xioma-agent/
 │   ├── agent.js        distribution logic — pure function, no side effects
 │   ├── wallets.js      on-chain earmarking via multisig
 │   └── client.js       demo client — x402 payment flow + oracle query
-├── demo/
-│   └── simulate.js     end-to-end demo script
 ├── .env.example        environment variable template
 └── README.md
 ```
@@ -394,17 +392,14 @@ xioma-agent/
 │   ├── agent.js        lógica de distribución — función pura, sin efectos secundarios
 │   ├── wallets.js      earmarking on-chain via multisig
 │   └── client.js       cliente de demo — flujo de pago x402 + consulta al oráculo
-├── demo/
-│   └── simulate.js     script de demo end-to-end
 ├── .env.example        template de variables de entorno
 └── README.md
 ```
-
 ---
 
 ### Cómo correrlo
 
-**Prerequisitos**
+**Pre-requisitos**
 - Node.js v20+
 - Dos cuentas Stellar testnet fondeadas (agente + cliente) con trustlines USDC
 - API key de OpenZeppelin: https://channels.openzeppelin.com/testnet/gen
