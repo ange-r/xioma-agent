@@ -217,15 +217,17 @@ node src/client.js
 
 ### Verified Testnet Transactions
 
-| Event | txHash |
-|---|---|
-| Multisig configuration | `f86ba85fcd7f68209983cdaa7018494bac1c7b31d645063aca68dd4c891f8e63` |
-| First earmarking (5 sub-accounts) | `d49deab93c71bde26ac0869a7aa5ee1dcf01ca8ff669d2b426d0dce4a822b2b4` |
-| Oracle x402 payment | `6df84b86d51462b14ef123dd3230448627410000e39995cde470f09a38e24008` |
-| Full flow with oracle | `3951d8e1c531c43261f9a5ff207b99aae4c1bbd6f45547e8030506f610b33950` |
+**Multisig configuration**
+![Multisig tx](./assets/tx-multisig.png)
 
-Explorer: https://stellar.expert/explorer/testnet
+**First earmarking — 5 sub-accounts in one transaction**
+![Earmarking tx](./assets/tx-earmarking.png)
 
+**Oracle x402 payment**
+![Oracle payment tx](./assets/tx-oracle-payment.png)
+
+**Full flow with oracle**
+![Full flow tx](./assets/tx-full-flow.png)
 ---
 
 ### Known Limitations
